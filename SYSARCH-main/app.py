@@ -617,6 +617,7 @@ def student_dashboard():
                           offline_mode=OFFLINE_MODE)
 
 @app.route('/admin-dashboard')
+@app.route('/admin-dashboard/')
 @admin_required
 def admin_dashboard():
     import datetime
@@ -918,11 +919,13 @@ def get_pc_status():
     try:
         # Get all active sessions with approved status for the specified lab room
         cursor.execute("""
-        SELECT id, student_id, purpose, status
-        FROM sessions 
-        WHERE lab_room = %s 
-        AND (status = 'active' OR status = 'pending')
-        AND approval_status = 'approved'
+        SELECT s.id, s.student_id, s.purpose, s.status, 
+               st.firstname, st.lastname, st.idno, st.course
+        FROM sessions s 
+        JOIN students st ON s.student_id = st.id
+        WHERE s.lab_room = %s 
+        AND (s.status = 'active' OR s.status = 'pending')
+        AND s.approval_status = 'approved'
         """, (lab_room,))
         
         active_sessions = cursor.fetchall()
@@ -934,7 +937,94 @@ def get_pc_status():
                 'status': 'vacant',
                 'student_id': None,
                 'session_id': None,
+                'purpose': None,
+                'student_name': None,
+                'student_idno': None,
+                'student_course': None
+            }
+        
+        # Update status based on active sessions
+        for session in active_sessions:
+            # Extract PC number from purpose field (format: "Purpose - PC #X")
+            purpose = session.get('purpose', '')
+            pc_match = re.search(r'PC #(\d+)', purpose)
+            
+            if pc_match:
+                pc_number = pc_match.group(1)
+                if pc_number in pc_status:
+                    # Format the student's course
+                    course_display = session['course']
+                    if session['course'] == '1':
+                        course_display = 'BSIT'
+                    elif session['course'] == '2':
+                        course_display = 'BSCS'
+                    elif session['course'] == '3':
+                        course_display = 'BSCE'
+                        
+                    pc_status[pc_number] = {
+                        'status': 'occupied' if session['status'] == 'active' else 'reserved',
+                        'student_id': session['student_id'],
+                        'session_id': session['id'],
+                        'purpose': purpose.split(' - PC #')[0] if ' - PC #' in purpose else purpose,
+                        'student_name': f"{session['firstname']} {session['lastname']}",
+                        'student_idno': session['idno'],
+                        'student_course': course_display
+                    }
+        
+        return jsonify({'pc_status': pc_status})
+        
+    except Exception as e:
+        logging.error(f"Error getting PC status: {str(e)}")
+        return jsonify({'error': 'Failed to get PC status'}), 500
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+# Student accessible route to get PC status
+@app.route('/student/get_pc_status', methods=['GET'])
+@login_required
+def student_get_pc_status():
+    lab_room = request.args.get('lab_room')
+    
+    if not lab_room:
+        return jsonify({'error': 'Lab room is required'}), 400
+    
+    conn = get_db_connection()
+    if conn is None:
+        # If database connection fails, return all PCs as available for offline mode
+        pc_status = {}
+        for i in range(1, 51):
+            pc_status[str(i)] = {
+                'status': 'vacant',
+                'student_id': None,
+                'session_id': None,
                 'purpose': None
+            }
+        return jsonify({'pc_status': pc_status})
+    
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get all active sessions with approved status for the specified lab room
+        cursor.execute("""
+        SELECT s.id, s.student_id, s.purpose, s.status,
+               st.firstname, st.lastname
+        FROM sessions s 
+        JOIN students st ON s.student_id = st.id
+        WHERE s.lab_room = %s 
+        AND status = 'active'
+        AND approval_status = 'approved'
+        """, (lab_room,))
+        
+        active_sessions = cursor.fetchall()
+        
+        # Initialize all PCs as vacant
+        pc_status = {}
+        for i in range(1, 51):
+            pc_status[str(i)] = {
+                'status': 'vacant',
+                'student_name': None
             }
         
         # Update status based on active sessions
@@ -947,86 +1037,21 @@ def get_pc_status():
                 pc_number = pc_match.group(1)
                 if pc_number in pc_status:
                     pc_status[pc_number] = {
-                        'status': 'occupied' if session['status'] == 'active' else 'reserved',
-                        'student_id': session['student_id'],
-                        'session_id': session['id'],
-                        'purpose': purpose.split(' - PC #')[0] if ' - PC #' in purpose else purpose
+                        'status': 'occupied',
+                        'student_name': f"{session['firstname']} {session['lastname']}" 
                     }
         
         return jsonify({'pc_status': pc_status})
         
     except Exception as e:
-        return jsonify({'error': f'Failed to get PC status: {str(e)}'}), 500
-        
-    finally:
-        cursor.close()
-        conn.close()
-
-# Route to manually update PC status (for admin)
-@app.route('/admin/update_pc_status', methods=['POST'])
-@admin_required
-def update_pc_status():
-    lab_room = request.form.get('lab_room')
-    pc_number = request.form.get('pc_number')
-    status = request.form.get('status')  # 'vacant', 'occupied', 'reserved', 'maintenance'
-    
-    if not lab_room or not pc_number or not status:
-        return jsonify({'error': 'Lab room, PC number, and status are required'}), 400
-    
-    if status not in ['vacant', 'occupied', 'reserved', 'maintenance']:
-        return jsonify({'error': 'Invalid status. Must be vacant, occupied, reserved, or maintenance'}), 400
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor()
-    
-    try:
-        # First, check if there's an active session for this PC
-        cursor.execute("""
-        SELECT id, student_id 
-        FROM sessions 
-        WHERE lab_room = %s 
-        AND purpose LIKE %s
-        AND (status = 'active' OR status = 'pending')
-        """, (lab_room, f"%PC #{pc_number}%"))
-        
-        session_data = cursor.fetchone()
-        
-        if session_data and status == 'vacant':
-            # If there's an active session and we're setting to vacant, mark the session as completed
-            cursor.execute("""
-            UPDATE sessions 
-            SET status = 'completed', check_out_time = NOW()
-            WHERE id = %s
-            """, (session_data[0],))
-            
-        elif not session_data and status in ['occupied', 'reserved']:
-            # If no session exists but we're marking as occupied/reserved, create a manual admin entry
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute("""
-            INSERT INTO sessions (student_id, lab_room, date_time, duration, purpose, status, approval_status, check_in_time)
-            VALUES (%s, %s, %s, %s, %s, %s, 'approved', %s)
-            """, (
-                1,  # Admin ID or placeholder for system actions
-                lab_room, 
-                current_time, 
-                1,  # 1 hour duration
-                f"Manual Admin Assignment - PC #{pc_number}",
-                'active' if status == 'occupied' else 'pending',
-                current_time if status == 'occupied' else None
-            ))
-        
-        # For 'maintenance' status, we would typically update a separate PC status table
-        # Since we don't have one currently, we could use a maintenance session or other approach
-        
-        conn.commit()
-        return jsonify({'success': True, 'message': f'PC {pc_number} in {lab_room} is now {status}'})
-        
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'error': f'Failed to update PC status: {str(e)}'}), 500
+        logging.error(f"Error getting PC status for student: {str(e)}")
+        # On error, return all PCs as available
+        pc_status = {}
+        for i in range(1, 51):
+            pc_status[str(i)] = {
+                'status': 'vacant'
+            }
+        return jsonify({'pc_status': pc_status})
         
     finally:
         cursor.close()
@@ -3307,6 +3332,139 @@ def format_schedule_time(time_value):
     
     # Return the original value for other types
     return str(time_value)
+
+# Route to manually update PC status (for admin)
+@app.route('/admin/update_pc_status', methods=['POST'])
+@admin_required
+def update_pc_status():
+    lab_room = request.form.get('lab_room')
+    pc_number = request.form.get('pc_number')
+    status = request.form.get('status')  # 'vacant', 'occupied', 'reserved', 'maintenance'
+    
+    if not lab_room or not pc_number or not status:
+        return jsonify({'error': 'Lab room, PC number, and status are required'}), 400
+    
+    if status not in ['vacant', 'occupied', 'reserved', 'maintenance']:
+        return jsonify({'error': 'Invalid status. Must be vacant, occupied, reserved, or maintenance'}), 400
+    
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    cursor = conn.cursor()
+    
+    try:
+        # First, check if there's an active session for this PC
+        cursor.execute("""
+        SELECT id, student_id 
+        FROM sessions 
+        WHERE lab_room = %s 
+        AND purpose LIKE %s
+        AND (status = 'active' OR status = 'pending')
+        """, (lab_room, f"%PC #{pc_number}%"))
+        
+        session_data = cursor.fetchone()
+        
+        if session_data and status == 'vacant':
+            # If there's an active session and we're setting to vacant, mark the session as completed
+            cursor.execute("""
+            UPDATE sessions 
+            SET status = 'completed', check_out_time = NOW()
+            WHERE id = %s
+            """, (session_data[0],))
+            
+        elif not session_data and status in ['occupied', 'reserved']:
+            # If no session exists but we're marking as occupied/reserved, create a manual admin entry
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("""
+            INSERT INTO sessions (student_id, lab_room, date_time, duration, purpose, status, approval_status, check_in_time)
+            VALUES (%s, %s, %s, %s, %s, %s, 'approved', %s)
+            """, (
+                1,  # Admin ID or placeholder for system actions
+                lab_room, 
+                current_time, 
+                1,  # 1 hour duration
+                f"Manual Admin Assignment - PC #{pc_number}",
+                'active' if status == 'occupied' else 'pending',
+                current_time if status == 'occupied' else None
+            ))
+        
+        # For 'maintenance' status, we would typically update a separate PC status table
+        # Since we don't have one currently, we could use a maintenance session or other approach
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': f'PC {pc_number} in {lab_room} is now {status}'})
+        
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"Error updating PC status: {str(e)}")
+        return jsonify({'error': 'Failed to update PC status'}), 500
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+# Route to clear stale PC sessions (for admin)
+@app.route('/admin/clear_stale_sessions', methods=['POST'])
+@admin_required
+def clear_stale_sessions():
+    lab_room = request.form.get('lab_room')
+    
+    if not lab_room:
+        return jsonify({'error': 'Lab room is required'}), 400
+    
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    cursor = conn.cursor()
+    
+    try:
+        # Get all PCs that have a student recorded as sitting in
+        cursor.execute("""
+        SELECT id, student_id, purpose
+        FROM sessions 
+        WHERE lab_room = %s 
+        AND status = 'active'
+        AND approval_status = 'approved'
+        """, (lab_room,))
+        
+        active_sessions = cursor.fetchall()
+        
+        # If there's only one active session, check if it needs to be cleared
+        if len(active_sessions) == 1:
+            session = active_sessions[0]
+            session_id = session[0]
+            
+            # Mark it as completed
+            cursor.execute("""
+            UPDATE sessions 
+            SET status = 'completed', check_out_time = NOW()
+            WHERE id = %s
+            """, (session_id,))
+            
+            conn.commit()
+            return jsonify({
+                'success': True, 
+                'message': 'Stale session cleared. All PCs should now show as available.',
+                'sessions_cleared': 1
+            })
+        
+        # If no active sessions or more than one, just return success
+        return jsonify({
+            'success': True, 
+            'message': f'No action needed. {len(active_sessions)} active sessions found.',
+            'sessions_cleared': 0
+        })
+        
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"Error clearing stale sessions: {str(e)}")
+        return jsonify({'error': 'Failed to clear stale sessions'}), 500
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     print("Starting Student Lab Session Management System...")
