@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - CSS SIT-IN MONITORING SYSTEM</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-image: url('/static/uc.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: rgba(0, 0, 0, 0.5);
+            background-blend-mode: overlay;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #003366;
+        }
+
+        .user-info {
+            text-align: right;
+            color: #003366;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-details {
+            text-align: right;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #003366;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            color: #003366;
+            margin-top: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 10px;
+        }
+
+        .announcements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .announcement {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .announcement:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .announcement-title {
+            color: #003366;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        .announcement-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .announcement-content {
+            color: #444;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .no-announcements {
+            text-align: center;
+            padding: 50px 0;
+            color: #6c757d;
+        }
+
+        /* Flash message styles */
+        .flash-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            background-color: #ffffff;
+            border-left: 4px solid;
+            padding: 15px 25px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        .flash-success {
+            border-left-color: #28a745;
+        }
+
+        .flash-error {
+            border-left-color: #dc3545;
+        }
+
+        .flash-warning {
+            border-left-color: #ffc107;
+        }
+
+        .flash-info {
+            border-left-color: #17a2b8;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                padding: 15px;
+            }
+            
+            .user-info {
+                margin-top: 15px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Flash Messages Container -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/CSS.png" alt="CSS Logo" class="logo">
+            <h2>CSS Sit-In Monitoring System</h2>
+        </div>
+        <div class="user-info">
+            <div class="user-details">
+                <h3>{{ student.firstname }} {{ student.lastname }}</h3>
+                <p>{{ student.idno }}</p>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <a href="{{ url_for('student_dashboard') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        
+        <div class="container">
+            <h1>Announcements</h1>
+            
+            <div class="announcements-list">
+                {% if announcements %}
+                    {% for announcement in announcements %}
+                        <div class="announcement">
+                            <div class="announcement-header">
+                                <h3 class="announcement-title">{{ announcement.title }}</h3>
+                                <span class="announcement-date">{{ announcement.created_at.strftime('%B %d, %Y') }}</span>
+                            </div>
+                            <div class="announcement-content">
+                                {{ announcement.content }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-announcements">
+                        <i class="fas fa-bullhorn" style="font-size: 3rem; color: #6c757d; margin-bottom: 20px;"></i>
+                        <h3>No Announcements</h3>
+                        <p>There are no announcements at this time. Check back later.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            var flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.style.display = 'none';
+                }, 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html> 

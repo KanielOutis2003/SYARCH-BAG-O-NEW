@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_student_view %}Student{% else %}Admin{% endif %} Leaderboard - CSS SIT-IN MONITORING SYSTEM</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-image: url('/static/uc.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: rgba(0, 0, 0, 0.5);
+            background-blend-mode: overlay;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #003366;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Student view styles */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #003366;
+        }
+
+        .page-header h1 {
+            color: #003366;
+            margin: 0;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #003366;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #004d99;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .leaderboard-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .leaderboard-table th {
+            background-color: #003366;
+            color: white;
+            font-weight: 600;
+        }
+
+        .leaderboard-table tr:hover {
+            background-color: rgba(0, 51, 102, 0.05);
+        }
+
+        .rank-cell {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .rank-1 {
+            color: gold;
+        }
+
+        .rank-2 {
+            color: silver;
+        }
+
+        .rank-3 {
+            color: #cd7f32; /* bronze */
+        }
+
+        .points-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #003366;
+        }
+
+        .reward-form {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #003366;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+            font-size: 14px;
+        }
+
+        /* Flash message styles */
+        .flash-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            background-color: #ffffff;
+            border-left: 4px solid;
+            padding: 15px 25px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        .flash-success {
+            border-left-color: #28a745;
+        }
+
+        .flash-error {
+            border-left-color: #dc3545;
+        }
+
+        .flash-warning {
+            border-left-color: #ffc107;
+        }
+
+        .flash-info {
+            border-left-color: #17a2b8;
+        }
+        
+        /* Student view additions */
+        .back-btn {
+            background-color: #003366;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .back-btn:hover {
+            background-color: #002244;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+        
+        /* Your stats card styles */
+        .your-stats-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #003366;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .your-stats-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #003366;
+            margin-bottom: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .highlight-row {
+            background-color: rgba(0, 51, 102, 0.1) !important;
+            border-left: 3px solid #003366;
+            font-weight: bold;
+        }
+        
+        /* Admin Header Styles */
+        .admin-header {
+            background: #ffffff;
+            padding: 20px;
+            color: #2c3e50;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .admin-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            max-width: 100%;
+            align-items: center;
+        }
+        
+        .nav-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+            flex: 0 0 auto;
+            min-width: 130px;
+            font-size: 14px;
+            font-weight: 500;
+            height: 42px;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            color: #2c3e50;
+            text-decoration: none;
+        }
+        
+        .nav-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .nav-item.active {
+            background: #2c3e50;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item i {
+            font-size: 16px;
+            width: 16px;
+            text-align: center;
+            color: inherit;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Flash Messages Container -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        {% if is_student_view %}
+        <!-- Student view header -->
+        <div class="header">
+            <div class="logo-section">
+                <img src="/static/CSS.png" alt="CSS Logo" class="logo">
+                <h1>Sit-In Leaderboard</h1>
+            </div>
+            <div>
+                <a href="{{ url_for('student_dashboard') }}"><button class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</button></a>
+                <a href="{{ url_for('logout') }}"><button class="logout-btn">Logout</button></a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Admin Header with logo -->
+        <div class="header">
+            <div class="logo-section">
+                <img src="/static/CSS.png" alt="CSS Logo" class="logo">
+                <h1>Admin Dashboard</h1>
+            </div>
+            <div>
+                <a href="{{ url_for('logout') }}"><button class="logout-btn">Logout</button></a>
+            </div>
+        </div>
+
+        <!-- Main Navigation Menu -->
+        <div class="admin-header">
+            <div class="admin-nav">
+                <a href="{{ url_for('admin_dashboard') }}" class="nav-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#sessions" class="nav-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Current Sessions</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#pending" class="nav-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Pending Requests</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#forms" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reservations</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#students" class="nav-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#feedback" class="nav-item">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Feedback</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#announcements" class="nav-item">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Announcements</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="{{ url_for('admin_leaderboard') }}" class="nav-item active">
+                    <i class="fas fa-trophy"></i>
+                    <span>Leaderboard</span>
+                </a>
+                <a href="{{ url_for('lab_resources') }}" class="nav-item">
+                    <i class="fas fa-book"></i>
+                    <span>Lab Resources</span>
+                </a>
+                <a href="{{ url_for('admin_lab_schedules') }}" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Lab Schedules</span>
+                </a>
+                <a href="{{ url_for('sit_in_history') }}" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>Sit-In History</span>
+                </a>
+                <a href="{{ url_for('todays_sit_ins') }}" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Today's Sit-ins</span>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}#settings" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Admin view header -->
+        <div class="page-header">
+            <h1>Student Leaderboard</h1>
+            <div class="admin-controls">
+                <button class="btn btn-primary" onclick="toggleRewardForm()">Add Reward Points</button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if is_student_view and your_stats %}
+        <!-- Your Stats Section for Student View -->
+        <div class="your-stats-card">
+            <div class="your-stats-title">
+                <i class="fas fa-user" style="font-size: 24px;"></i>
+                <h2 style="margin: 0;">Your Statistics</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">{{ your_stats.rank }}</div>
+                    <div class="stat-label">Current Rank</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ your_stats.points }}</div>
+                    <div class="stat-label">Total Points</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ your_stats.completed_sessions }}</div>
+                    <div class="stat-label">Completed Sessions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ your_stats.points_to_next_rank }}</div>
+                    <div class="stat-label">Points to Next Rank</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Leaderboard Section -->
+        <div class="leaderboard-section">
+            <h2>Top 5 Students</h2>
+            
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Year</th>
+                        <th>Points</th>
+                        <th>Sessions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in leaderboard %}
+                        <tr class="{% if is_student_view and student.id == current_user.id %}highlight-row{% endif %}">
+                            <td class="rank-cell rank-{{ loop.index }}">{{ loop.index }}</td>
+                            <td>{{ student.idno }}</td>
+                            <td>{{ student.lastname }}, {{ student.firstname }}</td>
+                            <td>
+                                {% if student.course == '1' %}
+                                    BSIT
+                                {% elif student.course == '2' %}
+                                    BSCS
+                                {% elif student.course == '3' %}
+                                    BSCE
+                                {% else %}
+                                    {{ student.course }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.year_level == '1' %}
+                                    1st Year
+                                {% elif student.year_level == '2' %}
+                                    2nd Year
+                                {% elif student.year_level == '3' %}
+                                    3rd Year
+                                {% elif student.year_level == '4' %}
+                                    4th Year
+                                {% else %}
+                                    {{ student.year_level }}
+                                {% endif %}
+                            </td>
+                            <td class="points-cell">{{ student.points }}</td>
+                            <td class="points-cell">{{ student.completed_sessions }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not is_student_view %}
+        <!-- Reward Form (Hidden by default) -->
+        <div id="rewardForm" class="leaderboard-section" style="display: none;">
+            <h2>Add Reward Points</h2>
+            <form action="{{ url_for('add_reward_points') }}" method="POST" class="reward-form">
+                <input type="hidden" id="student_id" name="student_id">
+                
+                <div class="form-group">
+                    <label for="student_name">Student</label>
+                    <input type="text" id="student_name" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="points">Points to Add</label>
+                    <input type="number" id="points" name="points" class="form-control" min="1" max="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reason">Reason</label>
+                    <textarea id="reason" name="reason" class="form-control" rows="3" placeholder="Reason for adding points..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Add Points</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleRewardForm()">Cancel</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            var flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.style.display = 'none';
+                }, 500);
+            });
+        }, 5000);
+        
+        // Toggle reward form visibility
+        function toggleRewardForm() {
+            var form = document.getElementById('rewardForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+        
+        // Show reward form for specific student
+        function showRewardForm(studentId, studentName) {
+            var form = document.getElementById('rewardForm');
+            var studentIdInput = document.getElementById('student_id');
+            var studentNameInput = document.getElementById('student_name');
+            
+            studentIdInput.value = studentId;
+            studentNameInput.value = studentName;
+            
+            form.style.display = 'block';
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html> 
